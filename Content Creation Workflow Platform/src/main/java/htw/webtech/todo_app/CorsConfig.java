@@ -14,7 +14,10 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOriginPattern("*"); // In production, specify your frontend URL
+        // Allow specific frontend URLs
+        config.addAllowedOrigin("https://content-creator-frontend-ixsj.onrender.com");
+        config.addAllowedOrigin("https://webtech-projekt-bao-minh.onrender.com");
+        config.addAllowedOriginPattern("https://*.onrender.com"); // Allow all Render subdomains
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
