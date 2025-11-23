@@ -1,45 +1,31 @@
 <script setup lang="ts">
-interface ContentPiece {
-  id: number
-  title: string
-  contentPillar: string
-  format: string
-  status: string
-  performance: string
-}
+import { ref, onMounted } from 'vue'
+import { fetchContentPieces, type ContentPiece } from '../services/api'
 
-const contentPieces: ContentPiece[] = [
-  {
-    id: 1,
-    title: 'Tech Video 1',
-    contentPillar: 'Tech',
-    format: 'Talking Head',
-    status: 'Ideation',
-    performance: 'High'
-  },
-  {
-    id: 2,
-    title: 'Business Video 1',
-    contentPillar: 'Business',
-    format: 'List Video',
-    status: 'Needs Scripting',
-    performance: 'Medium'
-  },
-  {
-    id: 3,
-    title: 'Lifestyle Video 1',
-    contentPillar: 'Lifestyle',
-    format: 'Talking Head',
-    status: 'Ready to Post',
-    performance: 'High'
+const contentPieces = ref<ContentPiece[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+onMounted(async () => {
+  loading.value = true
+  error.value = null
+  try {
+    contentPieces.value = await fetchContentPieces()
+  } catch (err) {
+    error.value = 'Failed to load content pieces. Please try again later.'
+    console.error(err)
+  } finally {
+    loading.value = false
   }
-]
+})
 </script>
 
 <template>
   <div class="content-piece-list">
     <h2>Content Pieces</h2>
-    <ul>
+    <div v-if="loading" class="loading">Loading...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <ul v-else>
       <li v-for="piece in contentPieces" :key="piece.id" class="content-item">
         <h3>{{ piece.title }}</h3>
         <p><strong>Pillar:</strong> {{ piece.contentPillar }}</p>
@@ -83,5 +69,20 @@ ul {
 .content-item p {
   margin: 0.5rem 0;
   color: var(--color-text);
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.error {
+  padding: 2rem;
+  text-align: center;
+  color: #ff4444;
+  background: var(--color-background-soft);
+  border: 1px solid #ff4444;
+  border-radius: 8px;
 }
 </style>
