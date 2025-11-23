@@ -10,10 +10,12 @@ onMounted(async () => {
   loading.value = true
   error.value = null
   try {
+    console.log('Loading content pieces...')
     contentPieces.value = await fetchContentPieces()
+    console.log('Content pieces loaded:', contentPieces.value)
   } catch (err) {
-    error.value = 'Failed to load content pieces. Please try again later.'
-    console.error(err)
+    console.error('Error loading content pieces:', err)
+    error.value = `Failed to load content pieces: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the browser console for details.`
   } finally {
     loading.value = false
   }
