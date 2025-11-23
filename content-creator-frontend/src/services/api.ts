@@ -15,7 +15,7 @@ export interface ContentPiece {
 }
 
 // Use Render URL if available, otherwise fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://webtech-projekt-bao-minh.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://content-creator-backend-dowg.onrender.com'
 
 export async function fetchContentPieces(): Promise<ContentPiece[]> {
   try {
