@@ -15,4 +15,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    port: parseInt(process.env.PORT || '4173'),
+    allowedHosts: [
+      'webtech-projekt-bao-minh.onrender.com',
+      '.onrender.com', // Erlaubt alle Render-Subdomains
+    ],
+  },
 })
