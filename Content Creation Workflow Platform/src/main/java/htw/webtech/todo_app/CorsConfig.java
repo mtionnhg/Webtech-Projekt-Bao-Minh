@@ -18,6 +18,7 @@ public class CorsConfig {
         config.addAllowedOrigin("https://content-creator-frontend-ixsj.onrender.com");
         config.addAllowedOrigin("https://webtech-projekt-bao-minh.onrender.com");
         config.addAllowedOriginPattern("https://*.onrender.com"); // Allow all Render subdomains
+        config.addAllowedOriginPattern("http://localhost:*"); // Allow localhost for development
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
