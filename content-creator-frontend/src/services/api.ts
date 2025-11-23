@@ -15,15 +15,23 @@ export interface ContentPiece {
 }
 
 // Use Render URL if available, otherwise fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://content-creator-backend-dowg.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://webtech-projekt-bao-minh-1.onrender.com'
 
 export async function fetchContentPieces(): Promise<ContentPiece[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/content`)
+    console.log('Fetching from:', `${API_BASE_URL}/api/content`)
+    const response = await fetch(`${API_BASE_URL}/api/content`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    console.log('Response status:', response.status)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
     const data = await response.json()
+    console.log('Data received:', data)
     return data
   } catch (error) {
     console.error('Error fetching content pieces:', error)
