@@ -19,7 +19,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://content-creat
 
 export async function fetchContentPieces(): Promise<ContentPiece[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/content`)
+    const response = await fetch(`${API_BASE_URL}/api/content`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
