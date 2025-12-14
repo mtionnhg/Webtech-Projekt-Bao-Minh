@@ -1,8 +1,13 @@
 package htw.webtech.todo_app;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "content_pieces")
 public class ContentPiece {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
     private String contentPillar;

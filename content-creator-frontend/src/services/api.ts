@@ -39,3 +39,26 @@ export async function fetchContentPieces(): Promise<ContentPiece[]> {
   }
 }
 
+export async function createContentPiece(contentPiece: Omit<ContentPiece, 'id'>): Promise<ContentPiece> {
+  try {
+    console.log('Creating content piece:', contentPiece)
+    const response = await fetch(`${API_BASE_URL}/api/content`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(contentPiece),
+    })
+    console.log('Response status:', response.status)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    console.log('Content piece created:', data)
+    return data
+  } catch (error) {
+    console.error('Error creating content piece:', error)
+    throw error
+  }
+}
+
