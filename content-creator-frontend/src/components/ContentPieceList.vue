@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { fetchContentPieces, createContentPiece, type ContentPiece } from '../services/api'
+import { fetchContentPieces, createContentPiece, deleteContentPiece, type ContentPiece } from '../services/api'
 
 const contentPieces = ref<ContentPiece[]>([])
 const loading = ref(false)
@@ -59,6 +59,19 @@ const handleSubmit = async () => {
   }
 }
 
+const handleDelete = async (id: number) => {
+  if (!confirm('Möchten Sie dieses Content Piece wirklich löschen?')) {
+    return
+  }
+  try {
+    await deleteContentPiece(id)
+    await loadContentPieces()
+  } catch (err) {
+    console.error('Error deleting content piece:', err)
+    error.value = `Failed to delete content piece: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the browser console for details.`
+  }
+}
+
 onMounted(() => {
   loadContentPieces()
 })
@@ -113,7 +126,10 @@ onMounted(() => {
     <div v-if="loading" class="loading">Loading...</div>
     <ul v-else>
       <li v-for="piece in contentPieces" :key="piece.id" class="content-item">
-        <h3>{{ piece.title }}</h3>
+        <div class="content-header">
+          <h3>{{ piece.title }}</h3>
+          <button @click="handleDelete(piece.id)" class="btn-delete">Löschen</button>
+        </div>
         <p><strong>Pillar:</strong> {{ piece.contentPillar }}</p>
         <p><strong>Format:</strong> {{ piece.format }}</p>
         <p><strong>Status:</strong> {{ piece.status }}</p>
@@ -237,9 +253,32 @@ ul {
   margin-bottom: 1rem;
 }
 
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
 .content-item h3 {
-  margin-top: 0;
+  margin: 0;
   color: var(--color-heading);
+  flex: 1;
+}
+
+.btn-delete {
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+  background: #c82333;
 }
 
 .content-item p {

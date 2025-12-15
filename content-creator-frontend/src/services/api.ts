@@ -62,3 +62,21 @@ export async function createContentPiece(contentPiece: Omit<ContentPiece, 'id'>)
   }
 }
 
+export async function deleteContentPiece(id: number): Promise<void> {
+  try {
+    const url = `${API_BASE_URL}/api/content/${id}`
+    console.log('Deleting content piece:', id, 'URL:', url)
+    const response = await fetch(url, {
+      method: 'DELETE',
+    })
+    console.log('Delete response status:', response.status)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    console.log('Content piece deleted successfully:', id)
+  } catch (error) {
+    console.error('Error deleting content piece:', error)
+    throw error
+  }
+}
+

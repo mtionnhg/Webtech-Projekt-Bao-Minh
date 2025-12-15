@@ -1,6 +1,7 @@
 package htw.webtech.todo_app;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -23,5 +24,14 @@ public class ContentPlanerController {
     @PostMapping("/api/content")
     public ContentPiece createContentPiece(@RequestBody ContentPiece contentPiece) {
         return contentPieceRepository.save(contentPiece);
+    }
+
+    @DeleteMapping("/api/content/{id}")
+    public ResponseEntity<Void> deleteContentPiece(@PathVariable Long id) {
+        if (!contentPieceRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        contentPieceRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
