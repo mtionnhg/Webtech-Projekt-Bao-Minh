@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { fetchContentPieces, createContentPiece, deleteContentPiece, updateContentPiece, type ContentPiece } from '@/services/api'
 
 const contentPieces = ref<ContentPiece[]>([])

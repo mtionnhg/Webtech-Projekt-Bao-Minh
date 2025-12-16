@@ -20,19 +20,17 @@
   </header>
 </template>
 
-<script>
-export default {
-  name: 'Header',
-  data() {
-    return {
-      navItems: [
-        { name: 'Ideation', path: '/ideation' },
-        { name: 'Workflow', path: '/workflow' },
-        { name: 'Tracking', path: '/tracking' }
-      ]
-    }
-  }
+<script setup lang="ts">
+interface NavItem {
+  name: string
+  path: string
 }
+
+const navItems: NavItem[] = [
+  { name: 'Ideation', path: '/ideation' },
+  { name: 'Workflow', path: '/workflow' },
+  { name: 'Tracking', path: '/tracking' }
+]
 </script>
 
 <style scoped>
