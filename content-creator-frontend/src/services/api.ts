@@ -18,65 +18,71 @@ export interface ContentPiece {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://webtech-projekt-bao-minh-1.onrender.com'
 
 export async function fetchContentPieces(): Promise<ContentPiece[]> {
-  try {
-    console.log('Fetching from:', `${API_BASE_URL}/api/content`)
-    const response = await fetch(`${API_BASE_URL}/api/content`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    console.log('Response status:', response.status)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    const data = await response.json()
-    console.log('Data received:', data)
-    return data
-  } catch (error) {
-    console.error('Error fetching content pieces:', error)
-    throw error
+  const response = await fetch(`${API_BASE_URL}/api/content`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
+  return response.json()
 }
 
 export async function createContentPiece(contentPiece: Omit<ContentPiece, 'id'>): Promise<ContentPiece> {
-  try {
-    console.log('Creating content piece:', contentPiece)
-    const response = await fetch(`${API_BASE_URL}/api/content`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(contentPiece),
-    })
-    console.log('Response status:', response.status)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    const data = await response.json()
-    console.log('Content piece created:', data)
-    return data
-  } catch (error) {
-    console.error('Error creating content piece:', error)
-    throw error
+  const response = await fetch(`${API_BASE_URL}/api/content`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(contentPiece),
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
+  return response.json()
 }
 
 export async function deleteContentPiece(id: number): Promise<void> {
-  try {
-    const url = `${API_BASE_URL}/api/content/${id}`
-    console.log('Deleting content piece:', id, 'URL:', url)
-    const response = await fetch(url, {
-      method: 'DELETE',
-    })
-    console.log('Delete response status:', response.status)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    console.log('Content piece deleted successfully:', id)
-  } catch (error) {
-    console.error('Error deleting content piece:', error)
-    throw error
+  const response = await fetch(`${API_BASE_URL}/api/content/${id}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
+}
+
+export async function updateContentPiece(id: number, contentPiece: Partial<ContentPiece> | ContentPiece): Promise<ContentPiece> {
+  const fullPiece = contentPiece as ContentPiece
+  const payload = {
+    id,
+    title: fullPiece.title || '',
+    contentPillar: fullPiece.contentPillar || '',
+    format: fullPiece.format || '',
+    status: fullPiece.status || '',
+    performance: fullPiece.performance || '',
+    notes: fullPiece.notes ?? null,
+    uploadDate: fullPiece.uploadDate ?? null,
+    link: fullPiece.link ?? null,
+    script: fullPiece.script ?? null,
+    shotlist: fullPiece.shotlist ?? null,
+    hook: fullPiece.hook ?? null,
+    caption: fullPiece.caption ?? null
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/api/content/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+  
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    throw new Error(`HTTP error! status: ${response.status}${errorText ? `, message: ${errorText}` : ''}`)
+  }
+  
+  return response.json()
 }
 

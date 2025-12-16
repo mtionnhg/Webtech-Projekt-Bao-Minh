@@ -34,4 +34,16 @@ public class ContentPlanerController {
         contentPieceRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+    @PutMapping("/api/content/{id}")
+    public ResponseEntity<ContentPiece> updateContentPiece(
+            @PathVariable Long id,
+            @RequestBody ContentPiece contentPiece
+    ) {
+        if (!contentPieceRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        contentPiece.setId(id);
+        ContentPiece updated = contentPieceRepository.save(contentPiece);
+        return ResponseEntity.ok(updated);
+    }
 }
