@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Webtech-Projekt-Bao-Minh.iml" filepath="$PROJECT_DIR$/.idea/Webtech-Projekt-Bao-Minh.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/todo-app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/todo-app.main.iml" />
     </modules>
   </component>
 </project>
