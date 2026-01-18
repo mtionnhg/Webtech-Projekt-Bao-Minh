@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "content_pieces")
@@ -26,7 +26,7 @@ public class ContentPiece {
     private String status;
     private String performance;
     private String notes;
-    private LocalDateTime uploadDate;
+    private LocalDate uploadDate;
     private String link;
     private String script;
     private String shotlist;

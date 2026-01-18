@@ -2,7 +2,7 @@ package htw.webtech.todo_app;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,11 +34,11 @@ class ContentPieceTest {
     @Test
     void contentPiece_uploadDateCanBeSet() {
         ContentPiece piece = new ContentPiece();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
         
-        piece.setUploadDate(now);
+        piece.setUploadDate(today);
         
-        assertEquals(now, piece.getUploadDate());
+        assertEquals(today, piece.getUploadDate());
     }
 
     @Test
