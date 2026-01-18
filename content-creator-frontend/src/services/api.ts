@@ -86,3 +86,30 @@ export async function updateContentPiece(id: number, contentPiece: Partial<Conte
   return response.json()
 }
 
+// PATCH nur Status updaten (für Drag & Drop)
+export async function updateContentStatus(id: number, status: string): Promise<ContentPiece> {
+  const response = await fetch(`${API_BASE_URL}/api/content/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+  return response.json()
+}
+
+// GET einzelnes Content Piece
+export async function fetchContentPieceById(id: number): Promise<ContentPiece> {
+  const response = await fetch(`${API_BASE_URL}/api/content/${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+  return response.json()
+}
