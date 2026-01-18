@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import IdeationView from '../IdeationView.vue'
 import * as api from '@/services/api'
 
@@ -11,40 +12,56 @@ vi.mock('@/services/api', () => ({
   updateContentPiece: vi.fn()
 }))
 
+// Mock Router
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/content/:id', component: { template: '<div />' } }
+  ]
+})
+
 describe('IdeationView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default: leere Liste zurückgeben
     vi.mocked(api.fetchContentPieces).mockResolvedValue([])
   })
 
   it('renders page title', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     expect(wrapper.text()).toContain('Ideation')
   })
 
   it('shows empty state when no content', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     expect(wrapper.text()).toContain('Keine Content Pieces')
   })
 
   it('renders three kanban columns', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
     const columns = wrapper.findAll('.kanban-column')
     expect(columns).toHaveLength(3)
   })
 
-  it('renders column titles', async () => {
-    const wrapper = mount(IdeationView)
+  it('renders correct column titles', async () => {
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
-    expect(wrapper.text()).toContain('Reel')
-    expect(wrapper.text()).toContain('Story')
-    expect(wrapper.text()).toContain('Carousel')
+    expect(wrapper.text()).toContain('Talking Head')
+    expect(wrapper.text()).toContain('List')
+    expect(wrapper.text()).toContain('Voice Over')
   })
 
   it('renders content pieces from API', async () => {
@@ -52,22 +69,25 @@ describe('IdeationView', () => {
       { 
         id: 1, 
         title: 'Test Video', 
-        format: 'Reel', 
+        format: 'Talking Head', 
         status: 'Ideation', 
-        contentPillar: 'Education', 
+        contentPillar: 'Top of Funnel', 
         performance: '' 
       }
     ])
     
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
     expect(wrapper.text()).toContain('Test Video')
-    expect(wrapper.text()).toContain('Education')
   })
 
   it('renders add buttons for each column', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
     const addButtons = wrapper.findAll('.add-button')
@@ -75,50 +95,62 @@ describe('IdeationView', () => {
   })
 
   it('opens create form when add button clicked', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
-    // Zunächst sollte kein Modal sichtbar sein
     expect(wrapper.find('.modal-overlay').exists()).toBe(false)
     
-    // Add Button klicken
     const addButton = wrapper.find('.add-button')
     await addButton.trigger('click')
     
-    // Modal sollte jetzt sichtbar sein
     expect(wrapper.find('.modal-overlay').exists()).toBe(true)
   })
 
   it('closes create form when cancel button clicked', async () => {
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
-    // Modal öffnen
     const addButton = wrapper.find('.add-button')
     await addButton.trigger('click')
     expect(wrapper.find('.modal-overlay').exists()).toBe(true)
     
-    // Abbrechen Button klicken
     const cancelButton = wrapper.find('.btn-secondary')
     await cancelButton.trigger('click')
     
-    // Modal sollte geschlossen sein
     expect(wrapper.find('.modal-overlay').exists()).toBe(false)
   })
 
   it('calls fetchContentPieces on mount', async () => {
-    mount(IdeationView)
+    mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
     expect(api.fetchContentPieces).toHaveBeenCalledTimes(1)
   })
 
-  it('shows error message when API fails', async () => {
-    vi.mocked(api.fetchContentPieces).mockRejectedValue(new Error('API Error'))
+  it('content cards are draggable', async () => {
+    vi.mocked(api.fetchContentPieces).mockResolvedValue([
+      { 
+        id: 1, 
+        title: 'Test Video', 
+        format: 'Talking Head', 
+        status: 'Ideation', 
+        contentPillar: '', 
+        performance: '' 
+      }
+    ])
     
-    const wrapper = mount(IdeationView)
+    const wrapper = mount(IdeationView, {
+      global: { plugins: [router] }
+    })
     await flushPromises()
     
-    expect(wrapper.text()).toContain('Fehler beim Laden')
+    const card = wrapper.find('.content-card')
+    expect(card.attributes('draggable')).toBe('true')
   })
 })

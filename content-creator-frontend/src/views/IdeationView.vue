@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchContentPieces, createContentPiece, deleteContentPiece, updateContentPiece, type ContentPiece } from '@/services/api'
 
+const router = useRouter()
 const contentPieces = ref<ContentPiece[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -9,7 +11,11 @@ const error = ref<string | null>(null)
 // Formular State
 const showCreateForm = ref(false)
 const newContentTitle = ref('')
-const selectedColumn = ref<'Reel' | 'Story' | 'Carousel'>('Reel')
+const selectedColumn = ref<'Talking Head' | 'List' | 'Voice Over'>('Talking Head')
+
+// Drag State
+const draggedPiece = ref<ContentPiece | null>(null)
+const dragOverColumn = ref<string | null>(null)
 
 // Context Menu State
 const contextMenu = ref<{
@@ -24,27 +30,21 @@ const contextMenu = ref<{
   pieceId: null
 })
 
-// Format Edit Popup State
-const formatEditPopup = ref<{
-  visible: boolean
-  pieceId: number | null
-  currentFormat: 'Reel' | 'Story' | 'Carousel' | null
-}>({
-  visible: false,
-  pieceId: null,
-  currentFormat: null
-})
-
-// Spalten Definition
+// Spalten Definition - Nur die 3 Content-Formate
 const columns = [
-  { id: 'Reel', title: 'Reel', format: 'Reel' },
-  { id: 'Story', title: 'Story', format: 'Story' },
-  { id: 'Carousel', title: 'Carousel', format: 'Carousel' }
+  { id: 'Talking Head', title: 'Talking Head', color: '#f59e0b' },
+  { id: 'List', title: 'List', color: '#10b981' },
+  { id: 'Voice Over', title: 'Voice Over', color: '#06b6d4' }
 ]
 
-// Gefilterte Content Pieces pro Spalte
+// Gefilterte Content Pieces pro Spalte (nur Status "Ideation")
 const getContentByFormat = (format: string) => {
-  return contentPieces.value.filter(piece => piece.format === format)
+  return contentPieces.value.filter(piece => piece.format === format && piece.status === 'Ideation')
+}
+
+// Anzahl pro Format
+const getCountByFormat = (format: string) => {
+  return getContentByFormat(format).length
 }
 
 // Content Pieces laden
@@ -101,6 +101,73 @@ const createNewContentPiece = async () => {
   }
 }
 
+// Drag & Drop Handler
+const onDragStart = (event: DragEvent, piece: ContentPiece) => {
+  draggedPiece.value = piece
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', piece.id.toString())
+  }
+  const target = event.target as HTMLElement
+  setTimeout(() => target.classList.add('dragging'), 0)
+}
+
+const onDragEnd = (event: DragEvent) => {
+  const target = event.target as HTMLElement
+  target.classList.remove('dragging')
+  draggedPiece.value = null
+  dragOverColumn.value = null
+}
+
+const onDragOver = (event: DragEvent, format: string) => {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+  dragOverColumn.value = format
+}
+
+const onDragLeave = (event: DragEvent) => {
+  const relatedTarget = event.relatedTarget as HTMLElement
+  if (!relatedTarget?.closest('.kanban-column')) {
+    dragOverColumn.value = null
+  }
+}
+
+const onDrop = async (event: DragEvent, newFormat: string) => {
+  event.preventDefault()
+  dragOverColumn.value = null
+
+  if (!draggedPiece.value) return
+  
+  const piece = draggedPiece.value
+  const oldFormat = piece.format
+  
+  if (oldFormat === newFormat) {
+    draggedPiece.value = null
+    return
+  }
+
+  // Optimistic Update
+  piece.format = newFormat
+
+  try {
+    await updateContentPiece(piece.id, piece)
+  } catch (err) {
+    // Rollback bei Fehler
+    piece.format = oldFormat
+    error.value = 'Fehler beim Aktualisieren des Formats'
+    console.error(err)
+  }
+
+  draggedPiece.value = null
+}
+
+// Zur Detail-Ansicht navigieren
+const goToDetail = (piece: ContentPiece) => {
+  router.push(`/content/${piece.id}`)
+}
+
 // Context Menu Handler
 const handleContextMenu = (event: MouseEvent, pieceId: number) => {
   event.preventDefault()
@@ -133,7 +200,6 @@ const deletePiece = async () => {
 
   try {
     await deleteContentPiece(pieceId)
-    // Aus lokalem Array entfernen
     contentPieces.value = contentPieces.value.filter(piece => piece.id !== pieceId)
   } catch (err) {
     error.value = 'Fehler beim Löschen des Content Pieces'
@@ -143,78 +209,18 @@ const deletePiece = async () => {
   }
 }
 
-// Format Edit Popup öffnen
-const openFormatEditPopup = (piece: ContentPiece) => {
-  formatEditPopup.value = {
-    visible: true,
-    pieceId: piece.id,
-    currentFormat: piece.format as 'Reel' | 'Story' | 'Carousel'
-  }
-}
-
-// Format Edit Popup schließen
-const closeFormatEditPopup = () => {
-  formatEditPopup.value = {
-    visible: false,
-    pieceId: null,
-    currentFormat: null
-  }
-}
-
-// Format ändern
-const updateFormat = async (newFormat: 'Reel' | 'Story' | 'Carousel') => {
-  if (!formatEditPopup.value.pieceId) return
-
-  const pieceId = formatEditPopup.value.pieceId
-  const currentPiece = contentPieces.value.find(piece => piece.id === pieceId)
-  
-  if (!currentPiece) {
-    error.value = 'Content Piece nicht gefunden'
-    return
-  }
-
-  isLoading.value = true
-  error.value = null
-
-  try {
-    const updated = await updateContentPiece(pieceId, {
-      ...currentPiece,
-      format: newFormat
-    })
-    
-    const index = contentPieces.value.findIndex(piece => piece.id === pieceId)
-    if (index !== -1) {
-      contentPieces.value[index] = updated
-    }
-    closeFormatEditPopup()
-  } catch (err) {
-    error.value = `Fehler beim Ändern des Formats: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`
-  } finally {
-    isLoading.value = false
-  }
-}
-
 // Click außerhalb des Context Menus schließen
 const handleClickOutside = (event: MouseEvent) => {
   if (contextMenu.value.visible) {
     const target = event.target as HTMLElement
-    if (!target.closest('.context-menu') && !target.closest('.content-card')) {
+    if (!target.closest('.context-menu')) {
       closeContextMenu()
     }
   }
 }
 
-// Card Click Handler (öffnet Format Edit Popup)
-const handleCardClick = (event: MouseEvent, piece: ContentPiece) => {
-  // Nur bei Linksklick öffnen, Rechtsklick für Context Menu
-  if (event.button === 0 || event.type === 'click') {
-    event.stopPropagation()
-    openFormatEditPopup(piece)
-  }
-}
-
 // Formular öffnen mit ausgewählter Spalte
-const openCreateForm = (columnFormat: 'Reel' | 'Story' | 'Carousel') => {
+const openCreateForm = (columnFormat: 'Talking Head' | 'List' | 'Voice Over') => {
   selectedColumn.value = columnFormat
   showCreateForm.value = true
   newContentTitle.value = ''
@@ -227,63 +233,98 @@ const closeCreateForm = () => {
   error.value = null
 }
 
+// Pillar Badge Farbe
+const getPillarColor = (pillar: string) => {
+  const colors: Record<string, string> = {
+    'Top of Funnel': '#10b981',
+    'Middle of Funnel': '#f59e0b',
+    'Bottom of Funnel': '#ef4444'
+  }
+  return colors[pillar] || '#6b7280'
+}
+
 onMounted(() => {
   loadContentPieces()
   document.addEventListener('click', handleClickOutside)
-  document.addEventListener('contextmenu', handleClickOutside)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('contextmenu', handleClickOutside)
 })
 </script>
 
 <template>
   <main class="ideation-view">
     <div class="container">
-      <h1 class="page-title">Ideation</h1>
+      <div class="page-header">
+        <h1 class="page-title">Ideation</h1>
+        <p class="page-subtitle">Neue Content-Ideen nach Format sortieren (nur Status: Ideation)</p>
+      </div>
 
       <div v-if="error" class="error-message">
         {{ error }}
+        <button @click="error = null" class="error-close">×</button>
+      </div>
+
+      <div v-if="isLoading && contentPieces.length === 0" class="loading">
+        Lade Content Pieces...
       </div>
 
       <!-- Kanban Board -->
-      <div class="kanban-board">
+      <div class="kanban-board" v-else>
         <div
           v-for="column in columns"
           :key="column.id"
           class="kanban-column"
+          :class="{ 'drag-over': dragOverColumn === column.id }"
+          @dragover="onDragOver($event, column.id)"
+          @dragleave="onDragLeave"
+          @drop="onDrop($event, column.id)"
         >
-          <div class="column-header">
-            <h2 class="column-title">{{ column.title }}</h2>
-            <button
-              @click="openCreateForm(column.format as 'Reel' | 'Story' | 'Carousel')"
-              class="add-button"
-              :aria-label="`Neues ${column.title} hinzufügen`"
-            >
-              +
-            </button>
+          <div class="column-header" :style="{ borderColor: column.color }">
+            <div class="column-title-wrapper">
+              <span class="column-dot" :style="{ backgroundColor: column.color }"></span>
+              <h2 class="column-title">{{ column.title }}</h2>
+            </div>
+            <div class="column-header-right">
+              <span class="column-count">{{ getCountByFormat(column.id) }}</span>
+              <button
+                @click="openCreateForm(column.id as 'Talking Head' | 'List' | 'Voice Over')"
+                class="add-button"
+                :aria-label="`Neues ${column.title} hinzufügen`"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           <div class="column-content">
             <div
-              v-if="getContentByFormat(column.format).length === 0"
+              v-if="getContentByFormat(column.id).length === 0"
               class="empty-state"
             >
               <p>Keine Content Pieces</p>
             </div>
 
             <div
-              v-for="piece in getContentByFormat(column.format)"
+              v-for="piece in getContentByFormat(column.id)"
               :key="piece.id"
               class="content-card"
-              @click="handleCardClick($event, piece)"
+              draggable="true"
+              @dragstart="onDragStart($event, piece)"
+              @dragend="onDragEnd"
+              @click="goToDetail(piece)"
               @contextmenu="handleContextMenu($event, piece.id)"
             >
               <h3 class="card-title">{{ piece.title }}</h3>
-              <div v-if="piece.contentPillar" class="card-pillar">
-                {{ piece.contentPillar }}
+              <div class="card-badges">
+                <span 
+                  v-if="piece.contentPillar" 
+                  class="badge"
+                  :style="{ backgroundColor: getPillarColor(piece.contentPillar) }"
+                >
+                  {{ piece.contentPillar }}
+                </span>
               </div>
             </div>
           </div>
@@ -301,45 +342,6 @@ onUnmounted(() => {
           <span>🗑️</span>
           <span>Löschen</span>
         </button>
-      </div>
-
-      <!-- Format Edit Popup Modal -->
-      <div v-if="formatEditPopup.visible" class="modal-overlay" @click="closeFormatEditPopup">
-        <div class="modal-content" @click.stop>
-          <div class="modal-header">
-            <h2>Format ändern</h2>
-            <button @click="closeFormatEditPopup" class="close-button">×</button>
-          </div>
-
-          <div class="format-edit-content">
-            <p class="format-edit-description">Wählen Sie ein neues Format für dieses Content Piece:</p>
-            
-            <div class="format-options">
-              <button
-                v-for="format in columns"
-                :key="format.id"
-                @click="updateFormat(format.format as 'Reel' | 'Story' | 'Carousel')"
-                class="format-option"
-                :class="{ 
-                  'format-option-active': formatEditPopup.currentFormat === format.format,
-                  'format-option-disabled': isLoading
-                }"
-                :disabled="isLoading || formatEditPopup.currentFormat === format.format"
-              >
-                <span class="format-option-label">{{ format.title }}</span>
-                <span v-if="formatEditPopup.currentFormat === format.format" class="format-option-current">
-                  (Aktuell)
-                </span>
-              </button>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" @click="closeFormatEditPopup" class="btn btn-secondary" :disabled="isLoading">
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Create Form Modal -->
@@ -367,7 +369,6 @@ onUnmounted(() => {
             <div class="form-group">
               <label>Format</label>
               <div class="format-display">{{ selectedColumn }}</div>
-              <p class="format-hint">Das Format wird automatisch basierend auf der Spalte zugeordnet.</p>
             </div>
 
             <div class="form-actions">
@@ -397,11 +398,21 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
+.page-header {
+  margin-bottom: 2rem;
+}
+
 .page-title {
   font-size: 2.5rem;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 2rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.page-subtitle {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 .error-message {
@@ -411,61 +422,107 @@ onUnmounted(() => {
   border-radius: 8px;
   margin-bottom: 1.5rem;
   border: 1px solid #fcc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #c33;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+  font-size: 1.2rem;
 }
 
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-top: 2rem;
 }
 
 .kanban-column {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   min-height: 500px;
+  transition: all 0.2s ease;
+}
+
+.kanban-column.drag-over {
+  background: #f0f4ff;
+  box-shadow: 0 4px 12px rgba(66, 82, 185, 0.2);
+  transform: scale(1.02);
 }
 
 .column-header {
-  padding: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
+  padding: 1.25rem;
+  border-bottom: 3px solid;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #4252b9 0%, #667eea 100%);
-  border-radius: 12px 12px 0 0;
+}
+
+.column-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.column-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 .column-title {
-  color: white;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
+  color: #1a1a1a;
   margin: 0;
 }
 
+.column-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.column-count {
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+}
+
 .add-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid white;
+  background: #4252b9;
+  border: none;
   color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.25rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  font-weight: 300;
-  line-height: 1;
 }
 
 .add-button:hover {
-  background: white;
-  color: #4252b9;
+  background: #3448a8;
   transform: scale(1.1);
 }
 
@@ -478,7 +535,7 @@ onUnmounted(() => {
 
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 2rem 1rem;
   color: #9ca3af;
   font-style: italic;
 }
@@ -489,14 +546,21 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 0.75rem;
+  cursor: grab;
   transition: all 0.2s ease;
-  cursor: pointer;
+  user-select: none;
 }
 
 .content-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
   border-color: #4252b9;
+}
+
+.content-card.dragging {
+  opacity: 0.5;
+  transform: rotate(3deg);
+  cursor: grabbing;
 }
 
 .card-title {
@@ -506,13 +570,18 @@ onUnmounted(() => {
   margin: 0 0 0.5rem 0;
 }
 
-.card-pillar {
-  font-size: 0.875rem;
-  color: #6b7280;
-  background: #e5e7eb;
-  padding: 0.25rem 0.5rem;
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  display: inline-block;
+  color: white;
 }
 
 /* Context Menu Styles */
@@ -524,7 +593,6 @@ onUnmounted(() => {
   padding: 0.5rem;
   z-index: 2000;
   min-width: 150px;
-  transform: translate(-10px, -10px);
 }
 
 .context-menu-item {
@@ -553,11 +621,6 @@ onUnmounted(() => {
 
 .context-menu-item.delete:hover {
   background: #fee2e2;
-  color: #991b1b;
-}
-
-.context-menu-item span:first-child {
-  font-size: 1.1rem;
 }
 
 /* Modal Styles */
@@ -579,10 +642,8 @@ onUnmounted(() => {
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 500px;
+  max-width: 450px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-height: 90vh;
-  overflow-y: auto;
 }
 
 .modal-header {
@@ -595,14 +656,14 @@ onUnmounted(() => {
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: #1a1a1a;
 }
 
 .close-button {
   background: none;
   border: none;
-  font-size: 2rem;
+  font-size: 1.75rem;
   color: #6b7280;
   cursor: pointer;
   line-height: 1;
@@ -613,7 +674,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: all 0.2s ease;
 }
 
 .close-button:hover {
@@ -626,7 +686,7 @@ onUnmounted(() => {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-group label {
@@ -642,7 +702,6 @@ onUnmounted(() => {
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s ease;
   box-sizing: border-box;
 }
 
@@ -657,20 +716,13 @@ onUnmounted(() => {
   border-radius: 8px;
   font-weight: 600;
   color: #4252b9;
-  margin-bottom: 0.5rem;
-}
-
-.format-hint {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
 }
 
 .form-actions {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .btn {
@@ -679,8 +731,8 @@ onUnmounted(() => {
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
   border: none;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
@@ -690,7 +742,6 @@ onUnmounted(() => {
 
 .btn-primary:hover:not(:disabled) {
   background: #3448a8;
-  transform: translateY(-1px);
 }
 
 .btn-primary:disabled {
@@ -707,67 +758,6 @@ onUnmounted(() => {
   background: #e5e7eb;
 }
 
-/* Format Edit Popup Styles */
-.format-edit-content {
-  padding: 1.5rem;
-}
-
-.format-edit-description {
-  margin-bottom: 1.5rem;
-  color: #374151;
-  font-size: 1rem;
-}
-
-.format-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.format-option {
-  padding: 1rem 1.5rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.format-option:hover:not(.format-option-disabled):not(.format-option-active) {
-  border-color: #4252b9;
-  background: #f0f4ff;
-  transform: translateX(4px);
-}
-
-.format-option-active {
-  border-color: #4252b9;
-  background: linear-gradient(135deg, #4252b9 0%, #667eea 100%);
-  color: white;
-  cursor: default;
-}
-
-.format-option-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.format-option-label {
-  font-weight: 600;
-}
-
-.format-option-current {
-  font-size: 0.875rem;
-  opacity: 0.9;
-  font-weight: 400;
-}
-
 /* Responsive */
 @media (max-width: 1024px) {
   .kanban-board {
@@ -782,10 +772,6 @@ onUnmounted(() => {
 
   .page-title {
     font-size: 2rem;
-  }
-
-  .modal-content {
-    max-width: 100%;
   }
 }
 </style>
