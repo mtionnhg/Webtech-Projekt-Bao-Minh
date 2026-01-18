@@ -266,6 +266,28 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Hook & Caption -->
+        <div class="hook-caption-grid">
+          <div class="form-group">
+            <label class="form-label">Hook</label>
+            <textarea 
+              v-model="contentPiece.hook" 
+              class="form-textarea"
+              rows="2"
+              placeholder="Die Hook für die ersten 3 Sekunden..."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Caption</label>
+            <textarea 
+              v-model="contentPiece.caption" 
+              class="form-textarea"
+              rows="2"
+              placeholder="Caption für den Post..."
+            ></textarea>
+          </div>
+        </div>
+
         <!-- Script Editor Section -->
         <div class="script-section">
           <div class="script-header">
@@ -299,28 +321,6 @@ onMounted(() => {
                 placeholder="Shotlist / B-Roll Ideen hier..."
               ></textarea>
             </div>
-          </div>
-        </div>
-
-        <!-- Hook & Caption -->
-        <div class="hook-caption-grid">
-          <div class="form-group">
-            <label class="form-label">Hook</label>
-            <textarea 
-              v-model="contentPiece.hook" 
-              class="form-textarea"
-              rows="2"
-              placeholder="Der Hook für die ersten 3 Sekunden..."
-            ></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Caption</label>
-            <textarea 
-              v-model="contentPiece.caption" 
-              class="form-textarea"
-              rows="2"
-              placeholder="Caption für den Post..."
-            ></textarea>
           </div>
         </div>
       </div>
