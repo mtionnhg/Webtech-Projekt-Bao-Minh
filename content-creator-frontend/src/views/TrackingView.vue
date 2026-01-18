@@ -68,17 +68,6 @@ const goToDetail = (piece: ContentPiece) => {
   router.push(`/content/${piece.id}`)
 }
 
-// Performance Badge Farbe
-const getPerformanceColor = (performance: string) => {
-  const colors: Record<string, string> = {
-    'Viral': '#10b981',
-    'Good': '#3b82f6',
-    'Mid': '#f59e0b',
-    'Bad': '#ef4444'
-  }
-  return colors[performance] || '#9ca3af'
-}
-
 // Performance Badge Klasse
 const getPerformanceClass = (performance: string) => {
   const classes: Record<string, string> = {
