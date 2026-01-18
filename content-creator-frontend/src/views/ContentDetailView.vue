@@ -13,7 +13,7 @@ const error = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
 
 // Dropdown Optionen
-const formatOptions = ['Talking Head', 'List', 'Voice Over', 'Reel', 'Story', 'Carousel']
+const formatOptions = ['Talking Head', 'List', 'Voice Over']
 const pillarOptions = ['Top of Funnel', 'Middle of Funnel', 'Bottom of Funnel']
 const statusOptions = ['Ideation', 'Scripting', 'Filming', 'Editing', 'Ready 2 Upload', 'Uploaded']
 const performanceOptions = ['', 'Viral', 'Good', 'Mid', 'Bad']
