@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -46,5 +47,31 @@ public class ContentPlanerController {
         contentPiece.setId(id);
         ContentPiece updated = contentPieceRepository.save(contentPiece);
         return ResponseEntity.ok(updated);
+    }
+
+    // GET einzelnes Content Piece (für Content Detail View)
+    @GetMapping("/api/content/{id}")
+    public ResponseEntity<ContentPiece> getContentPieceById(@PathVariable Long id) {
+        return contentPieceRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // PATCH nur Status updaten (für Drag & Drop im Workflow Board)
+    @PatchMapping("/api/content/{id}/status")
+    public ResponseEntity<ContentPiece> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        return contentPieceRepository.findById(id)
+                .map(piece -> {
+                    String newStatus = body.get("status");
+                    if (newStatus != null) {
+                        piece.setStatus(newStatus);
+                        contentPieceRepository.save(piece);
+                    }
+                    return ResponseEntity.ok(piece);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
